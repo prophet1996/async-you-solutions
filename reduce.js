@@ -1,13 +1,13 @@
+//Please leave this problem for now
 const http = require("http"); //Package used to make http request
 const async = require("async"); //Package used for async operation handling
 
 //the callback that will  be used for async calling
 //url - url passed to call the http server
 //next - this will be a callback provided by async library so that we can call next function in async chain
-const httpCallback = (url, item, memo, next) => {
-  console.log("item", item, "memo", memo + 1);
+const httpCallback = (err, memo, item, next) => {
   //Get method makes an http get request to the given url
-  http.get(`${url}?number=${item}`, res => {
+  http.get(`${process.argv[2]}?number=${item}`, res => {
     let httpResult = "";
     // on method sets up a 'data' event listner on the http response (as the response comes in chunks)
     res.on("data", chunk => {
@@ -18,7 +18,7 @@ const httpCallback = (url, item, memo, next) => {
     res
       .on("end", () => {
         //invoke the next callback on the async chain
-        next(null, parseInt(httpResult) + memo);
+        next(null, memo + parseInt(httpResult), item, next);
       })
       .on("err", err => {
         //invokes the main callback with error object directly
@@ -28,13 +28,16 @@ const httpCallback = (url, item, memo, next) => {
 };
 
 //async.series sequentially  executes each callback and pass on the result to the main callback
-async.reduce(["one", "two", "three"], 0, function iteratee(
-  memo,
-  item,
-  callback
-) {
-  httpCallback(process.argv[2], item, memo, callback);
-});
+async.reduce(
+  ["one", "two", "three"],
+  0,
+  function iteratee(memo, item, callback) {
+    httpCallback(null, memo, item, callback);
+  },
+  (err, result) => {
+    console.log(result);
+  }
+);
 
 /*
 The main difference between the waterfall and series functions is that the
@@ -48,4 +51,30 @@ For eg:-
    "  requestOne: 'one is smaller than 2'",
    "  requestTwo: 'two greater than one'" ,
    "}"
+*/
+
+/*
+OFFICIAL SOLUTION
+var http = require('http')
+      , async = require('async');
+
+    async.reduce(['one', 'two', 'three'], 0, function(memo, item, done){
+      var body = '';
+
+      http.get(process.argv[2] + "?number=" + item, function(res){
+        res.on('data', function(chunk){
+          body += chunk.toString();
+        });
+
+        res.on('end', function(){
+          done(null, memo + Number(body));
+        });
+      }).on('error', done);
+
+    }, function done(err, result){
+      if (err) return console.log(err);
+      console.log(result);
+    });
+
+
 */
